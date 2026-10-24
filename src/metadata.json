@@ -5,6 +5,6 @@
     "shell-version": ["51"],
     "session-modes": ["user", "unlock-dialog"],
     "settings-schema": "org.gnome.shell.extensions.sidestage",
-    "version-name": "1.0.0",
+    "version-name": "1.0.1",
     "url": "https://github.com/mathauscm/sidestage"
 }

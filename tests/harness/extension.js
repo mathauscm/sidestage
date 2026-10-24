@@ -83,9 +83,13 @@ export default class SidestageTestHarness extends Extension {
         // Target GNOME will use for the minimize animation.
         wins[0].minimize();
         const [ok, geom] = wins[0].get_icon_geometry();
+        await sleep(60);
+        await this._shot('01a-minimizing');
         await sleep(90);
-        await this._shot('01-minimizing');
-        await sleep(700);
+        await this._shot('01b-minimizing');
+        await sleep(120);
+        await this._shot('01c-minimizing');
+        await sleep(500);
         this._step('one-minimized', {
             iconGeometry: ok ? {x: geom.x, y: geom.y, w: geom.width, h: geom.height} : null,
         });

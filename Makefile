@@ -1,5 +1,5 @@
 UUID    = sidestage@mathauscm
-VERSION = 1.0.0
+VERSION = 1.0.1
 SRC     = src
 DIST    = dist
 ZIP     = $(DIST)/$(UUID).shell-extension.zip

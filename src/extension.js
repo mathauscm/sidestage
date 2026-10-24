@@ -29,7 +29,8 @@ const BADGE_SIZE = 32;      // app icon in the thumbnail corner
 const RADIUS = 12;          // same radius as .sidestage-thumb in the CSS
 const MOVE_TIME = 320;
 const FADE_TIME = 200;
-const APPEAR_DELAY = 120;   // let the window "land" before showing the snapshot
+const FLY_TIME = 380;       // our minimize animation
+const FLY_FALLBACK = 450;   // reveal the card anyway if the flight never ran
 const HOVER_SCALE = 1.05;
 const ASPECT_MIN = 0.45;    // height / width
 const ASPECT_MAX = 1.6;
@@ -160,9 +161,10 @@ class Card {
             this.actor.remove_all_transitions();
             this.actor.set_position(slot.x, slot.y);
             this.actor.set_scale(slot.scale, slot.scale);
+            // 'fly': the flying snapshot reveals the card when it lands.
             this.actor.ease({
                 opacity: 255,
-                delay: appear === 'fly' ? APPEAR_DELAY : 0,
+                delay: appear === 'fly' ? FLY_FALLBACK : 0,
                 duration: FADE_TIME,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             });
@@ -182,6 +184,14 @@ class Card {
             this.actor.set_scale(slot.scale, slot.scale);
             this.actor.opacity = 255;
         }
+    }
+
+    /** Shows the card at once (the flying snapshot just landed on it). */
+    reveal() {
+        if (this._destroyed)
+            return;
+        this.actor.remove_transition('opacity');
+        this.actor.opacity = 255;
     }
 
     /** The thumbnail's on-screen rectangle, as currently drawn. */
@@ -219,6 +229,8 @@ export default class SidestageExtension extends Extension {
         this._snapshots = new Map();    // win -> {content, width, height}
         this._stamps = new Map();       // win -> order in which it was minimized
         this._flyRects = new Map();     // win -> target of the native animation
+        this._flights = new Map();      // win -> thumbnail rect our minimize flies to
+        this._flyingActors = new Set();
         this._tracked = new Set();
         this._stamp = 0;
         this._strips = [];
@@ -237,11 +249,22 @@ export default class SidestageExtension extends Extension {
         // GNOME reads the icon geometry inside _minimizeWindow/_unminimizeWindow,
         // right after calling _shouldAnimateActor. We write our target there so
         // Dash to Dock can't overwrite it in between.
+        // For minimizing we skip GNOME's animation (it fades the window into a
+        // see-through ghost) and fly an opaque snapshot ourselves.
+        const self = this;
         const flyRects = this._flyRects;
         this._injections = new InjectionManager();
         this._injections.overrideMethod(Main.wm, '_shouldAnimateActor', original =>
             function (actor, types) {
                 const win = actor?.meta_window;
+                const flight = win ? self._flights.get(win) : null;
+                if (flight && win.minimized) {
+                    self._flights.delete(win);
+                    const {reducedMotion} = St.Settings.get();
+                    if (this._shouldAnimate() && reducedMotion !== St.ReducedMotion.REDUCE &&
+                        self._fly(win, flight))
+                        return false;
+                }
                 const rect = win ? flyRects.get(win) : null;
                 if (rect) {
                     flyRects.delete(win);
@@ -296,6 +319,8 @@ export default class SidestageExtension extends Extension {
         for (const win of this._tracked)
             win.disconnectObject(this);
 
+        for (const actor of this._flyingActors)
+            actor.destroy();
         for (const card of this._cards.values())
             card.destroy();
         this._layer.destroy();
@@ -306,6 +331,8 @@ export default class SidestageExtension extends Extension {
         this._snapshots.clear();
         this._stamps.clear();
         this._flyRects.clear();
+        this._flights.clear();
+        this._flyingActors.clear();
         this._tracked.clear();
         this._settings = null;
     }
@@ -332,6 +359,7 @@ export default class SidestageExtension extends Extension {
         this._stamps.delete(win);
         this._snapshots.delete(win);
         this._flyRects.delete(win);
+        this._flights.delete(win);
         this._relayout(true);
     }
 
@@ -408,6 +436,53 @@ export default class SidestageExtension extends Extension {
         });
         this._flyRects.set(win, rect);
         win.set_icon_geometry(rect);
+    }
+
+    /** Opaque snapshot shrinking from the window into its thumbnail, like
+     *  macOS. Returns false (GNOME animates instead) when there's no snapshot. */
+    _fly(win, thumb) {
+        const snapshot = this._snapshots.get(win);
+        if (!snapshot)
+            return false;
+        const frame = win.get_frame_rect();
+        const k = thumb.width / snapshot.width;
+
+        // Cropped exactly like the card, so the hand-off is seamless.
+        const flyer = new Clutter.Actor({
+            x: frame.x,
+            y: frame.y,
+            width: snapshot.width,
+            height: snapshot.height,
+            clip_to_allocation: true,
+        });
+        const image = new Clutter.Actor({
+            content: snapshot.content,
+            x: -snapshot.offsetX,
+            y: -snapshot.offsetY,
+            width: snapshot.fullWidth,
+            height: snapshot.fullHeight,
+        });
+        image.set_content_scaling_filters(
+            Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
+        flyer.add_child(image);
+        // Above the windows, below the top bar and the dock.
+        Main.layoutManager.uiGroup.insert_child_above(flyer, global.window_group);
+        this._flyingActors.add(flyer);
+
+        flyer.ease({
+            x: thumb.x,
+            y: thumb.y,
+            scale_x: k,
+            scale_y: k,
+            duration: FLY_TIME,
+            mode: Clutter.AnimationMode.EASE_OUT_QUART,
+            onStopped: () => {
+                this._cards.get(win)?.reveal();
+                this._flyingActors.delete(flyer);
+                flyer.destroy();
+            },
+        });
+        return true;
     }
 
     _buildStrips() {
@@ -534,12 +609,15 @@ export default class SidestageExtension extends Extension {
                 card.place(slots[i], animate, appear);
 
                 if (win === newWin) {
-                    this._setFlyRect(win, {
+                    const thumb = {
                         x: strip.area.x + slots[i].x,
                         y: strip.area.y + slots[i].y,
                         width: slots[i].width,
                         height: slots[i].height,
-                    });
+                    };
+                    // Native animation stays as the fallback target.
+                    this._flights.set(win, thumb);
+                    this._setFlyRect(win, thumb);
                 }
             });
         }

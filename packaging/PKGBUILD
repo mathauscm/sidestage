@@ -1,6 +1,6 @@
 # Local Sidestage package. Build it with "make package" from the project root.
 pkgname=gnome-shell-extension-sidestage
-pkgver=1.0.0
+pkgver=1.0.1
 pkgrel=1
 pkgdesc="macOS Stage Manager-style thumbnails for minimized windows (GNOME 51)"
 arch=('any')

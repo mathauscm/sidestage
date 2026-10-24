@@ -27,7 +27,7 @@ Click the thumbnail and the window grows back out of it.
 
 ```sh
 make package
-sudo pacman -U dist/gnome-shell-extension-sidestage-1.0.0-1-any.pkg.tar.zst
+sudo pacman -U dist/gnome-shell-extension-sidestage-1.0.1-1-any.pkg.tar.zst
 ```
 
 Then **log out and back in** (on Wayland, GNOME only loads new extensions at
