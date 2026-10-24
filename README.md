@@ -1,93 +1,96 @@
 # Sidestage
 
-Extensão do GNOME 51 que imita o Stage Manager do macOS: quando você minimiza
-uma janela, ela **voa direto para uma miniatura na lateral da tela**. Clique na
-miniatura e a janela volta crescendo a partir dela.
+A GNOME 51 extension inspired by macOS Stage Manager: when you minimize a
+window, it **flies straight into a thumbnail on the side of the screen**.
+Click the thumbnail and the window grows back out of it.
 
-- Só mostra janelas **minimizadas**, do workspace atual.
-- Cada monitor tem a própria coluna (ou tudo no principal, se preferir).
-- Clique: restaura só aquela janela, sem mexer nas outras.
-- Clique do meio: fecha a janela.
-- As janelas abertas passam **por cima** da coluna, como no Mac.
+- Shows only **minimized** windows from the current workspace.
+- Each monitor gets its own column (or everything on the primary one, if you prefer).
+- Click: restores just that window, leaving the others alone.
+- Middle click: closes the window.
+- Open windows stay **on top** of the column, just like on the Mac.
 
-## Por que é leve
+## Why it's lightweight
 
-- A animação de minimizar/restaurar é a **nativa do GNOME** (feita pelo
-  compositor); o Sidestage só diz para onde a janela deve ir.
-- A miniatura é uma **foto tirada uma vez**, no momento de minimizar, e não um
-  clone ao vivo. Parado, o Sidestage não consome CPU nem GPU.
-- Nada roda em loop: tudo reage a eventos (minimizar, restaurar, trocar de
-  workspace, mudar monitor).
-- A redução da foto usa mipmaps (filtro trilinear), então a miniatura fica
-  nítida, sem serrilhado.
+- The minimize/restore animation is **GNOME's native one** (run by the
+  compositor); Sidestage only tells it where the window should go.
+- Thumbnails are a **snapshot taken once**, at the moment of minimizing, not a
+  live clone. While idle, Sidestage uses no CPU or GPU.
+- Nothing runs in a loop: everything reacts to events (minimize, restore,
+  workspace switch, monitor change).
+- Snapshots are downscaled with mipmaps (trilinear filtering), so thumbnails
+  stay sharp with no jagged edges.
 
-## Instalar
+## Install
 
-### Como pacote do sistema (recomendado no CachyOS/Arch)
+### As a system package (recommended on Arch / CachyOS)
 
 ```sh
 make package
 sudo pacman -U dist/gnome-shell-extension-sidestage-1.0.0-1-any.pkg.tar.zst
 ```
 
-Depois **saia da sessão e entre de novo** (no Wayland o GNOME só carrega
-extensões novas no login) e ative:
+Then **log out and back in** (on Wayland, GNOME only loads new extensions at
+login) and enable it:
 
 ```sh
 gnome-extensions enable sidestage@mathauscm
 ```
 
-Para remover: `sudo pacman -R gnome-shell-extension-sidestage`.
+To remove: `sudo pacman -R gnome-shell-extension-sidestage`.
 
-### Só para o seu usuário (sem senha)
+### For your user only (no root needed)
 
 ```sh
 make install
 ```
 
-Saia da sessão, entre de novo e rode `gnome-extensions enable sidestage@mathauscm`.
-Para remover: `make uninstall`.
+Log out, log back in and run `gnome-extensions enable sidestage@mathauscm`.
+To remove: `make uninstall`.
 
-## Configurações
+## Settings
 
-Abra pelo app **Extensões** (botão de engrenagem do Sidestage) ou com
+Open them from the **Extensions** app (Sidestage's gear button) or with
 `gnome-extensions prefs sidestage@mathauscm`:
 
-| Opção | Padrão |
+| Option | Default |
 |---|---|
-| Lado da tela | Esquerda |
-| Largura das miniaturas | 180 px |
-| Máximo de miniaturas por monitor | 8 |
-| Inclinação 3D | 0° (reta) |
-| Uma coluna em cada monitor | Ligado |
-| Clique do meio fecha a janela | Ligado |
+| Screen side | Left |
+| Thumbnail width | 180 px |
+| Maximum thumbnails per monitor | 8 |
+| 3D tilt | 0° (flat) |
+| One column per monitor | On |
+| Middle click closes the window | On |
 
-## Desenvolvimento
+The preferences window is currently in Portuguese.
+
+## Development
 
 ```
-src/                 a extensão (é isso que vai no pacote)
-  extension.js       lógica, miniaturas e animação
-  prefs.js           janela de configurações (libadwaita)
-  stylesheet.css     visual das miniaturas
-  schemas/           configurações (GSettings)
-packaging/PKGBUILD   pacote do pacman
-tests/               teste automático num GNOME Shell sem tela
+src/                 the extension (this is what gets packaged)
+  extension.js       logic, thumbnails and animation
+  prefs.js           preferences window (libadwaita)
+  stylesheet.css     thumbnail styling
+  schemas/           settings (GSettings)
+packaging/PKGBUILD   pacman package
+tests/               automated test in a headless GNOME Shell
 ```
 
-`make test` sobe um `gnome-shell --headless` **isolado** (configurações e
-extensões numa pasta temporária, sem tocar na sua sessão), abre três janelas,
-minimiza, restaura, troca de workspace e salva prints + `report.json` em
-`dist/test/`.
+`make test` starts an **isolated** `gnome-shell --headless` (settings and
+extensions live in a temporary folder, your session is never touched), opens
+three windows, minimizes them, restores one, switches workspaces and saves
+screenshots plus a `report.json` to `dist/test/`.
 
-### Detalhes técnicos
+### Technical notes
 
-- O GNOME anima o minimizar em direção ao *icon geometry* da janela (é assim
-  que ela vai para o ícone do dock). O Sidestage grava a posição da miniatura
-  nesse campo logo antes da animação, dentro de `Main.wm._shouldAnimateActor`,
-  para o Dash to Dock não sobrescrever.
-- A coluna fica dentro do grupo do papel de parede
-  (`Main.layoutManager._backgroundGroup`), por isso fica abaixo das janelas.
-- No mutter 51 o `paint_to_content(clip)` desloca a imagem; por isso a foto é
-  da janela inteira e o recorte (sem a margem de sombra) é feito na miniatura.
-- A extensão continua ativa na tela de bloqueio (`unlock-dialog`) só para não
-  perder as fotos das janelas minimizadas quando você bloqueia o PC.
+- GNOME animates minimizing towards the window's *icon geometry* (that's how
+  it reaches the dock icon). Sidestage writes the thumbnail's position into
+  that field right before the animation, inside `Main.wm._shouldAnimateActor`,
+  so Dash to Dock can't overwrite it.
+- The column lives inside the wallpaper group
+  (`Main.layoutManager._backgroundGroup`), which is why it sits below windows.
+- On mutter 51, `paint_to_content(clip)` shifts the image, so the snapshot
+  covers the whole window and the crop (without the shadow margin) is done
+  in the thumbnail.
+- The extension stays enabled on the lock screen (`unlock-dialog`) only so
+  the snapshots of minimized windows aren't lost when you lock the screen.
