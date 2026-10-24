@@ -1,0 +1,4 @@
+dist/
+packaging/src/
+packaging/pkg/
+*.compiled

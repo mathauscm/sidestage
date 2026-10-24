@@ -1,0 +1,14 @@
+# Pacote local do Sidestage. Gere com "make package" na raiz do projeto.
+pkgname=gnome-shell-extension-sidestage
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Sidestage: miniaturas estilo Stage Manager do macOS para janelas minimizadas (GNOME 51)"
+arch=('any')
+url="https://github.com/mathauscm/sidestage"
+license=('GPL-3.0-or-later')
+depends=('gnome-shell>=1:51' 'gnome-shell<1:52')
+makedepends=('make')
+
+package() {
+    make -C "$startdir/.." DESTDIR="$pkgdir" install-system
+}

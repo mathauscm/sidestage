@@ -1,0 +1,6 @@
+{
+    "uuid": "sidestage-test@local",
+    "name": "Sidestage test harness",
+    "description": "Roteiro automático usado só por tests/run-headless.sh.",
+    "shell-version": ["51"]
+}
