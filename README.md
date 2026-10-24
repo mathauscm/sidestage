@@ -62,8 +62,6 @@ Open them from the **Extensions** app (Sidestage's gear button) or with
 | One column per monitor | On |
 | Middle click closes the window | On |
 
-The preferences window is currently in Portuguese.
-
 ## Development
 
 ```

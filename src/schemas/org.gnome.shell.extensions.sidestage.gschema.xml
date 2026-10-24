@@ -4,12 +4,12 @@
     <key name="card-width" type="i">
       <range min="120" max="280"/>
       <default>180</default>
-      <summary>Largura das miniaturas (px)</summary>
+      <summary>Thumbnail width (px)</summary>
     </key>
     <key name="max-cards" type="i">
       <range min="3" max="15"/>
       <default>8</default>
-      <summary>Máximo de miniaturas por monitor</summary>
+      <summary>Maximum thumbnails per monitor</summary>
     </key>
     <key name="side" type="s">
       <choices>
@@ -17,21 +17,21 @@
         <choice value="right"/>
       </choices>
       <default>'left'</default>
-      <summary>Lado da tela onde ficam as miniaturas</summary>
+      <summary>Screen side for the thumbnails</summary>
     </key>
     <key name="all-monitors" type="b">
       <default>true</default>
-      <summary>Cada monitor mostra as próprias janelas minimizadas</summary>
-      <description>Desligado: todas as miniaturas ficam só no monitor principal.</description>
+      <summary>Each monitor shows its own minimized windows</summary>
+      <description>When off, all thumbnails go to the primary monitor.</description>
     </key>
     <key name="tilt" type="i">
       <range min="0" max="25"/>
       <default>0</default>
-      <summary>Inclinação 3D das miniaturas (graus)</summary>
+      <summary>3D tilt of the thumbnails (degrees)</summary>
     </key>
     <key name="middle-click-close" type="b">
       <default>true</default>
-      <summary>Clique do meio na miniatura fecha a janela</summary>
+      <summary>Middle-clicking a thumbnail closes the window</summary>
     </key>
   </schema>
 </schemalist>

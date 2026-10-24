@@ -16,35 +16,35 @@ export default class SidestagePreferences extends ExtensionPreferences {
         window.add(page);
 
         const look = new Adw.PreferencesGroup({
-            title: 'Aparência',
-            description: 'As mudanças aparecem na hora.',
+            title: 'Appearance',
+            description: 'Changes apply immediately.',
         });
         page.add(look);
 
         const side = new Adw.ComboRow({
-            title: 'Lado da tela',
-            model: Gtk.StringList.new(['Esquerda', 'Direita']),
+            title: 'Screen side',
+            model: Gtk.StringList.new(['Left', 'Right']),
             selected: settings.get_string('side') === 'right' ? 1 : 0,
         });
         side.connect('notify::selected', () =>
             settings.set_string('side', side.selected === 1 ? 'right' : 'left'));
         look.add(side);
 
-        look.add(this._spin(settings, 'card-width', 'Largura das miniaturas',
-            'Em pixels', 120, 280, 10));
-        look.add(this._spin(settings, 'max-cards', 'Máximo de miniaturas',
-            'Por monitor; as mais antigas ficam escondidas', 3, 15, 1));
-        look.add(this._spin(settings, 'tilt', 'Inclinação 3D',
-            'Em graus; 0 deixa as miniaturas retas', 0, 25, 1));
+        look.add(this._spin(settings, 'card-width', 'Thumbnail width',
+            'In pixels', 120, 280, 10));
+        look.add(this._spin(settings, 'max-cards', 'Maximum thumbnails',
+            'Per monitor; older ones are hidden', 3, 15, 1));
+        look.add(this._spin(settings, 'tilt', '3D tilt',
+            'In degrees; 0 keeps thumbnails flat', 0, 25, 1));
 
-        const behavior = new Adw.PreferencesGroup({title: 'Comportamento'});
+        const behavior = new Adw.PreferencesGroup({title: 'Behavior'});
         page.add(behavior);
 
         behavior.add(this._switch(settings, 'all-monitors',
-            'Uma barra em cada monitor',
-            'Desligado: todas as miniaturas ficam no monitor principal'));
+            'One column per monitor',
+            'When off, all thumbnails go to the primary monitor'));
         behavior.add(this._switch(settings, 'middle-click-close',
-            'Clique do meio fecha a janela', null));
+            'Middle click closes the window', null));
     }
 
     _spin(settings, key, title, subtitle, min, max, step) {

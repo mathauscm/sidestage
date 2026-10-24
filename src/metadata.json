@@ -1,7 +1,7 @@
 {
     "uuid": "sidestage@mathauscm",
     "name": "Sidestage",
-    "description": "Barra lateral estilo Stage Manager do macOS: janelas minimizadas voam para miniaturas no canto da tela; clique para trazer de volta.",
+    "description": "macOS Stage Manager-style sidebar: minimized windows fly into thumbnails on the side of the screen; click one to bring it back.",
     "shell-version": ["51"],
     "session-modes": ["user", "unlock-dialog"],
     "settings-schema": "org.gnome.shell.extensions.sidestage",
