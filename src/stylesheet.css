@@ -1,12 +1,12 @@
-/* Moldura da miniatura: fundo escuro + sombra; a imagem por cima tem os
- * cantos arredondados pelo shader, com o mesmo raio. */
+/* Thumbnail frame: dark background + shadow; the image on top gets its
+ * corners rounded by the shader, using the same radius. */
 .sidestage-thumb {
     border-radius: 12px;
     background-color: rgba(28, 28, 30, 0.55);
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
 }
 
-/* Janela sem foto (minimizada antes da extensão iniciar): só o ícone. */
+/* Window without a snapshot (minimized before the extension started): icon only. */
 .sidestage-thumb-empty {
     background-color: rgba(44, 44, 48, 0.82);
     border: 1px solid rgba(255, 255, 255, 0.12);

@@ -1,5 +1,5 @@
-// Roteiro de teste: roda dentro de um gnome-shell --headless isolado,
-// minimiza/restaura as janelas de teste e salva prints + um resumo em JSON.
+// Test scenario: runs inside an isolated gnome-shell --headless,
+// minimizes/restores the test windows and saves screenshots + a JSON summary.
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
@@ -80,7 +80,7 @@ export default class SidestageTestHarness extends Extension {
         this._step('start');
         await this._shot('00-start');
 
-        // Destino que o GNOME vai usar na animação de minimizar.
+        // Target GNOME will use for the minimize animation.
         wins[0].minimize();
         const [ok, geom] = wins[0].get_icon_geometry();
         await sleep(90);

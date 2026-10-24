@@ -1,14 +1,14 @@
-// Sidestage — barra lateral estilo Stage Manager do macOS para o GNOME 51.
+// Sidestage — macOS Stage Manager-style sidebar for GNOME 51.
 //
-// Como funciona:
-//  * Ao minimizar, tiramos uma foto da janela (uma vez só, na GPU) e criamos
-//    uma miniatura na lateral do monitor dela.
-//  * A animação nativa de minimizar do GNOME usa o "icon geometry" da janela
-//    como destino. Apontamos esse destino para a miniatura, então a janela
-//    voa direto para a lateral (e volta dela ao restaurar) sem animação nossa
-//    competindo com a do compositor.
-//  * Nada roda em loop: tudo é disparado por sinais, e as miniaturas são
-//    texturas paradas (não clones ao vivo), então o custo em repouso é zero.
+// How it works:
+//  * On minimize we snapshot the window (once, on the GPU) and add a
+//    thumbnail on the side of its monitor.
+//  * GNOME's native minimize animation targets the window's "icon geometry".
+//    We point that at the thumbnail, so the window flies straight into the
+//    sidebar (and back out of it on restore) with no animation of ours
+//    competing with the compositor's.
+//  * Nothing runs in a loop: everything is signal-driven, and thumbnails are
+//    static textures (not live clones), so the idle cost is zero.
 
 import Clutter from 'gi://Clutter';
 import Cogl from 'gi://Cogl';
@@ -22,16 +22,16 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const MARGIN_X = 22;        // distância da borda da tela
-const MARGIN_Y = 36;        // folga em cima/embaixo quando a coluna enche
-const GAP = 22;             // espaço entre miniaturas
-const BADGE_SIZE = 32;      // ícone do app no canto da miniatura
-const RADIUS = 12;          // mesmo raio do .sidestage-thumb no CSS
+const MARGIN_X = 22;        // distance from the screen edge
+const MARGIN_Y = 36;        // top/bottom room when the column fills up
+const GAP = 22;             // space between thumbnails
+const BADGE_SIZE = 32;      // app icon in the thumbnail corner
+const RADIUS = 12;          // same radius as .sidestage-thumb in the CSS
 const MOVE_TIME = 320;
 const FADE_TIME = 200;
-const APPEAR_DELAY = 120;   // espera a janela "chegar" antes de mostrar a foto
+const APPEAR_DELAY = 120;   // let the window "land" before showing the snapshot
 const HOVER_SCALE = 1.05;
-const ASPECT_MIN = 0.45;    // altura / largura
+const ASPECT_MIN = 0.45;    // height / width
 const ASPECT_MAX = 1.6;
 const FALLBACK_ASPECT = 0.625;
 
@@ -49,7 +49,7 @@ if (q.x < radius && q.y < radius) {
 }
 `;
 
-/** Arredonda os cantos da foto (St não recorta conteúdo pelo border-radius). */
+/** Rounds the snapshot's corners (St doesn't clip content to border-radius). */
 const RoundedCornersEffect = GObject.registerClass(
 class SidestageRoundedCornersEffect extends Clutter.ShaderEffect {
     vfunc_get_static_snippet() {
@@ -105,8 +105,8 @@ class Card {
             layout_manager: new Clutter.BinLayout(),
         });
         if (snapshot) {
-            // A foto é a janela inteira (com a margem de sombra); a moldura
-            // recorta só a parte visível da janela.
+            // The snapshot is the whole window (shadow margin included); the
+            // frame crops it down to the visible part of the window.
             const k = this.width / snapshot.width;
             const frame = new Clutter.Actor({
                 width: this.width,
@@ -120,7 +120,7 @@ class Card {
                 width: Math.round(snapshot.fullWidth * k),
                 height: Math.round(snapshot.fullHeight * k),
             });
-            // Mipmaps: reduzir 2000px para 180px sem serrilhar.
+            // Mipmaps: shrink 2000px down to 180px without aliasing.
             image.set_content_scaling_filters(
                 Clutter.ScalingFilter.TRILINEAR, Clutter.ScalingFilter.LINEAR);
             frame.add_child(image);
@@ -154,7 +154,7 @@ class Card {
         this.actor.connect('destroy', () => (this._destroyed = true));
     }
 
-    /** Coloca/move a miniatura. appear: null | 'fade' | 'fly'. */
+    /** Places/moves the thumbnail. appear: null | 'fade' | 'fly'. */
     place(slot, animate, appear) {
         if (appear) {
             this.actor.remove_all_transitions();
@@ -184,7 +184,7 @@ class Card {
         }
     }
 
-    /** Retângulo da miniatura na tela, como está desenhada agora. */
+    /** The thumbnail's on-screen rectangle, as currently drawn. */
     stageRect() {
         if (!this.actor.mapped)
             return null;
@@ -217,15 +217,15 @@ export default class SidestageExtension extends Extension {
         this._settings = this.getSettings();
         this._cards = new Map();        // win -> Card
         this._snapshots = new Map();    // win -> {content, width, height}
-        this._stamps = new Map();       // win -> ordem em que foi minimizada
-        this._flyRects = new Map();     // win -> destino da animação nativa
+        this._stamps = new Map();       // win -> order in which it was minimized
+        this._flyRects = new Map();     // win -> target of the native animation
         this._tracked = new Set();
         this._stamp = 0;
         this._strips = [];
         this._relayoutId = 0;
 
-        // Fica no grupo do papel de parede: as janelas passam por cima da
-        // barra, como no macOS, e cliques nas miniaturas funcionam normalmente.
+        // Lives in the wallpaper group: windows pass over the sidebar, like on
+        // macOS, and clicks on the thumbnails still work normally.
         const bgGroup = Main.layoutManager._backgroundGroup;
         this._layer = new Clutter.Actor({name: 'sidestage-layer'});
         bgGroup.add_child(this._layer);
@@ -234,9 +234,9 @@ export default class SidestageExtension extends Extension {
                 bgGroup.set_child_above_sibling(this._layer, null);
         }, this);
 
-        // O GNOME lê o icon geometry dentro de _minimizeWindow/_unminimizeWindow,
-        // logo depois de chamar _shouldAnimateActor. Gravamos o nosso destino
-        // ali para o Dash to Dock não sobrescrever no meio do caminho.
+        // GNOME reads the icon geometry inside _minimizeWindow/_unminimizeWindow,
+        // right after calling _shouldAnimateActor. We write our target there so
+        // Dash to Dock can't overwrite it in between.
         const flyRects = this._flyRects;
         this._injections = new InjectionManager();
         this._injections.overrideMethod(Main.wm, '_shouldAnimateActor', original =>
@@ -340,8 +340,8 @@ export default class SidestageExtension extends Extension {
             return;
 
         if (win.minimized) {
-            // A janela ainda está na tela neste momento: a animação só começa
-            // depois, quando o mutter processa a fila.
+            // The window is still on screen at this point: the animation only
+            // starts later, when mutter processes its queue.
             this._capture(win);
             this._stamps.set(win, ++this._stamp);
             this._relayout(true, win);
@@ -355,8 +355,8 @@ export default class SidestageExtension extends Extension {
         }
     }
 
-    /** Foto da janela + o recorte (no formato que a miniatura vai usar).
-     *  Captura o ator inteiro: no mutter 51 o parâmetro clip desloca a imagem. */
+    /** Snapshot of the window + the crop (in the shape the thumbnail will use).
+     *  Captures the whole actor: on mutter 51 the clip parameter shifts the image. */
     _capture(win) {
         const actor = win.get_compositor_private();
         if (!actor)
@@ -388,11 +388,11 @@ export default class SidestageExtension extends Extension {
                 });
             }
         } catch (e) {
-            console.warn(`Sidestage: não deu para capturar "${win.get_title()}": ${e.message}`);
+            console.warn(`Sidestage: could not snapshot "${win.get_title()}": ${e.message}`);
         }
     }
 
-    /** Faz a animação nativa encaixar a janela exatamente em `thumb`. */
+    /** Makes the native animation land the window exactly on `thumb`. */
     _setFlyRect(win, thumb) {
         const frame = win.get_frame_rect();
         const buffer = win.get_buffer_rect();
@@ -445,7 +445,7 @@ export default class SidestageExtension extends Extension {
         });
     }
 
-    /** Janelas minimizadas do workspace atual, mais recente primeiro, por monitor. */
+    /** Minimized windows on the current workspace, newest first, per monitor. */
     _windowsByMonitor() {
         const workspace = global.workspace_manager.get_active_workspace();
         const allMonitors = this._settings.get_boolean('all-monitors');
@@ -475,7 +475,7 @@ export default class SidestageExtension extends Extension {
         return snapshot ? snapshot.height / snapshot.width : FALLBACK_ASPECT;
     }
 
-    /** Coluna centralizada na vertical; encolhe tudo se não couber. */
+    /** Vertically centered column; shrinks everything if it doesn't fit. */
     _computeSlots(strip, windows) {
         const width = this._settings.get_int('card-width');
         const heights = windows.map(w => Math.round(width * clampAspect(this._aspectOf(w))));

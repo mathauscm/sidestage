@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Testa o Sidestage num gnome-shell --headless isolado: não mexe na sua sessão,
-# nas suas extensões nem nas suas configurações (tudo vai para uma pasta temporária).
-# Uso: tests/run-headless.sh [pasta-de-saida]
+# Tests Sidestage in an isolated gnome-shell --headless: it doesn't touch your
+# session, extensions or settings (everything goes to a temporary folder).
+# Usage: tests/run-headless.sh [output-dir]
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -32,7 +32,7 @@ dbus-run-session -- bash -c '
     sleep 3
     APPS=()
     i=0
-    for spec in "Azul #2563eb 900 600" "Verde #16a34a 700 800" "Vermelho #dc2626 1200 500"; do
+    for spec in "Blue #2563eb 900 600" "Green #16a34a 700 800" "Red #dc2626 1200 500"; do
         set -- $spec
         WAYLAND_DISPLAY=$DISPLAY_NAME GDK_BACKEND=wayland \
             gjs -m "$ROOT/tests/window.js" "$1" "$2" "$3" "$4" >> "$SIDESTAGE_TEST_OUT/apps.log" 2>&1 &
@@ -48,12 +48,12 @@ dbus-run-session -- bash -c '
     true
 '
 
-echo "Saída em: $OUT"
+echo "Output in: $OUT"
 if [ -f "$OUT/report.json" ]; then
     cat "$OUT/report.json"
 else
-    echo "FALHOU: sem report.json"
+    echo "FAILED: no report.json"
 fi
-echo "--- erros/avisos do shell ligados ao Sidestage ---"
-grep -iE "sidestage|JS ERROR|Extension .* error|TypeError|ReferenceError" "$OUT/shell.log" || echo "(nenhum)"
+echo "--- shell errors/warnings related to Sidestage ---"
+grep -iE "sidestage|JS ERROR|Extension .* error|TypeError|ReferenceError" "$OUT/shell.log" || echo "(none)"
 rm -rf "$WORK/config" "$WORK/data" "$WORK/cache"

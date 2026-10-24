@@ -1,4 +1,4 @@
-// Janela GTK4 colorida para o teste: gjs -m window.js "Título" "#cor" largura altura
+// Colored GTK4 window for the test: gjs -m window.js "Title" "#color" width height
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=4.0';
 
